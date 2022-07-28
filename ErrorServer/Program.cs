@@ -59,6 +59,7 @@ public class Program {
 			try
 			{
 				ProcessConnection(socket.Accept());
+				ErrorLog += $"<Br/>Disconnected at {DateTime.Now}";
 				ConnectionStatusMarkup = "<b style='color:red'>NOT CONNECTED</b>";
 			}
 			catch { }

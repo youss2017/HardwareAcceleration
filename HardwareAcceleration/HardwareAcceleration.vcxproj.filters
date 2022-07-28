@@ -19,6 +19,9 @@
     <Filter Include="Source Files\Implementation">
       <UniqueIdentifier>{e2dd36e9-c74f-4ced-8074-8d424473e7d6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Memory Allocator">
+      <UniqueIdentifier>{c50a4271-2377-4cd4-9a24-1a303d1d2bb5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AccelerationEngine.cpp">
@@ -35,6 +38,15 @@
     </ClCompile>
     <ClCompile Include="ImplementationContext.cpp">
       <Filter>Source Files\Implementation</Filter>
+    </ClCompile>
+    <ClCompile Include="MemoryAllocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GPGPUMemory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandThread.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -55,6 +67,12 @@
     </ClInclude>
     <ClInclude Include="ImplementionManagedTypes.hpp">
       <Filter>Header Files\InternalHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryAllocator.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandThread.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

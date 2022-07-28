@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -127,7 +127,8 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(ProjectDir)dep\VulkanMemoryAllocator\include;C:\VulkanSDK\1.3.204.1\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)dep\VulkanMemoryAllocator\include;C:\VulkanSDK\1.3.216.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -145,7 +146,8 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(ProjectDir)dep\VulkanMemoryAllocator\include;C:\VulkanSDK\1.3.204.1\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)dep\VulkanMemoryAllocator\include;C:\VulkanSDK\1.3.216.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -158,18 +160,25 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AccelerationEngine.hpp" />
+    <ClInclude Include="CommandThread.hpp" />
+    <ClInclude Include="ComputeShader.hpp" />
     <ClInclude Include="dep\VulkanMemoryAllocator\include\vk_mem_alloc.h" />
     <ClInclude Include="GPGPUMemory.hpp" />
     <ClInclude Include="ImplementationContext.hpp" />
     <ClInclude Include="ImplementationLogger.hpp" />
     <ClInclude Include="ImplementionManagedTypes.hpp" />
+    <ClInclude Include="MemoryAllocator.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AccelerationEngine.cpp" />
+    <ClCompile Include="CommandThread.cpp" />
+    <ClCompile Include="ComputeShader.cpp" />
     <ClCompile Include="dep\VulkanMemoryAllocator\src\Common.cpp" />
     <ClCompile Include="dep\VulkanMemoryAllocator\src\VmaUsage.cpp" />
+    <ClCompile Include="GPGPUMemory.cpp" />
     <ClCompile Include="ImplementationContext.cpp" />
     <ClCompile Include="ImplementationLogger.cpp" />
+    <ClCompile Include="MemoryAllocator.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

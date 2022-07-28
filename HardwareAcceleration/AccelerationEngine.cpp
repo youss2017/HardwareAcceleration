@@ -2,9 +2,14 @@
 #include "ImplementationContext.hpp"
 #include "ImplementationLogger.hpp"
 #include "ImplementionManagedTypes.hpp"
+#include "MemoryAllocator.hpp"
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 #include <iostream>
+#include <cassert>
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 
 namespace HA {
 
@@ -21,7 +26,7 @@ namespace HA {
 		engineInfo.pApplicationName = "HardwareAccelerationAPI";
 		engineInfo.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
 		engineInfo.engineVersion = engineInfo.applicationVersion;
-		engineInfo.apiVersion = VK_API_VERSION_1_1;
+		engineInfo.apiVersion = VK_API_VERSION_1_0;
 
 		VkInstanceCreateInfo instanceCreateInfo{ VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
 		instanceCreateInfo.pApplicationInfo = &engineInfo;
@@ -29,12 +34,12 @@ namespace HA {
 		std::vector<const char*> extensions;
 		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
 		if (DebugEnable) {
-			_Logger = new Logger(DebugMode == AccelerationEngineDebuggingOptions::WEB_SERVER);
+			_Logger = new HA::Logger(DebugMode == AccelerationEngineDebuggingOptions::WEB_SERVER);
 			if (CheckInstanceSupport("VK_LAYER_KHRONOS_validation")) {
 				extensions.push_back("VK_LAYER_KHRONOS_validation");
 				instanceCreateInfo.pNext = &debugCreateInfo;
 				debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-				debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+				debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 				debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 				debugCreateInfo.pfnUserCallback = HA_VulkanValidation_DebugCallback;
 				debugCreateInfo.pUserData = _Logger;
@@ -57,6 +62,9 @@ namespace HA {
 
 	AccelerationEngine::~AccelerationEngine()
 	{
+		delete ImplementationContext->_CommandThread;
+		if (ImplementationContext->Allocator)
+			vmaDestroyAllocator(ImplementationContext->Allocator);
 		if (ImplementationContext->Device) {
 			vkDestroyDevice(ImplementationContext->Device, ImplementationContext->AllocationCallbacks);
 		}
@@ -91,8 +99,11 @@ namespace HA {
 			case VK_API_VERSION_1_2:
 				properties[i].SupportedVersion = AccelerationEngineVersion::VK_1_2;
 				break;
+			case VK_API_VERSION_1_3:
+				properties[i].SupportedVersion = AccelerationEngineVersion::VK_1_3;
+				break;
 			default:
-				properties[i].SupportedVersion = AccelerationEngineVersion::VK_1_2;
+				properties[i].SupportedVersion = AccelerationEngineVersion::VK_1_3;
 			}
 			memcpy(properties[i].Name, prop.deviceName, sizeof(prop.deviceName));
 			properties[i].IsDedicated = !((prop.deviceType & VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) |
@@ -116,7 +127,7 @@ namespace HA {
 		return properties;
 	}
 
-	bool AccelerationEngine::EstablishDevice(const HardwareDevice& device)
+	bool AccelerationEngine::UseDevice(const HardwareDevice& device)
 	{
 		VkPhysicalDevice physicalDevice = (VkPhysicalDevice)device.Id;
 		uint32_t queueFamilyCount = 0;
@@ -152,58 +163,51 @@ namespace HA {
 			return false;
 		}
 		ImplementationContext->PhysicalDevice = physicalDevice;
+		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &ImplementationContext->Properties);
+
+		vkGetDeviceQueue(ImplementationContext->Device, index, 0, &ImplementationContext->Queue);
+		VmaAllocatorCreateInfo vcreateInfo{};
+		vcreateInfo.physicalDevice = ImplementationContext->PhysicalDevice;
+		vcreateInfo.device = ImplementationContext->Device;
+		vcreateInfo.pAllocationCallbacks = ImplementationContext->AllocationCallbacks;
+		vcreateInfo.instance = ImplementationContext->Instance;
+		vcreateInfo.vulkanApiVersion = VK_API_VERSION_1_0;
+		vmaCreateAllocator(&vcreateInfo, &ImplementationContext->Allocator);
+
+		ImplementationContext->_CommandThread = new CommandThread(ImplementationContext->Device, ImplementationContext->Queue, index, ImplementationContext->AllocationCallbacks);
+
 		return true;
 	}
 
-	GPGPUBuffer* AccelerationEngine::AllocateBuffer(GPGPUMemoryType memoryType, uint64_t size)
+	GPGPUBuffer* AccelerationEngine::Malloc(GPGPUMemoryType memoryType, uint64_t size)
 	{
-		if (!ImplementationContext->Allocator) {
-			VmaAllocatorCreateInfo createInfo{};
-			createInfo.device = ImplementationContext->Device;
-			createInfo.instance = ImplementationContext->Instance;
-			createInfo.physicalDevice = ImplementationContext->PhysicalDevice;
-			createInfo.pAllocationCallbacks = ImplementationContext->AllocationCallbacks;
-			createInfo.vulkanApiVersion = VK_API_VERSION_1_1;
-			if (!vmaCreateAllocator(&createInfo, &ImplementationContext->Allocator) == VK_SUCCESS) {
-				if (DebugEnable) {
-					_Logger->Print("Could not initalize Vulkan Memory Allocator (VMA).", true, "red");
-				}
-				return nullptr;
-			}
-		}
-		VkBufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-		createInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-		createInfo.size = size;
-		createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		VmaAllocationCreateInfo vmaCreateInfo{};
-		vmaCreateInfo.memoryTypeBits = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
-		switch (memoryType) {
-		case GPGPUMemoryType::Static:
-			vmaCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-			break;
-		case GPGPUMemoryType::Host:
-			vmaCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
-			break;
-		default:
-			vmaCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
-		}
-		ImplementationManagedBuffer* buffer = new ImplementationManagedBuffer();
-		VkResult result = vmaCreateBuffer(ImplementationContext->Allocator, &createInfo, &vmaCreateInfo, &buffer->Buffer, &buffer->Allocation, &buffer->AllocationInfo);
-		if (result != VK_SUCCESS) {
-			if (DebugEnable) {
-				_Logger->Print(GetStringFromResult(result).c_str(), true, "red");
-				_Logger->Print(GetDescriptionFromResult(result).c_str(), true, "red");
-			}
-			return nullptr;
-		}
-		return new GPGPUBuffer(memoryType, size, buffer);
+		return new GPGPUBuffer(ImplementationContext, memoryType, size);
 	}
 
 	void AccelerationEngine::FreeBuffer(GPGPUBuffer* buffer)
 	{
-		vmaDestroyBuffer(ImplementationContext->Allocator, buffer->Buffer->Buffer, buffer->Buffer->Allocation);
-		delete buffer->Buffer;
+		assert(buffer && "GPGPUBuffer cannot be null.");
 		delete buffer;
+	}
+
+	void AccelerationEngine::CommitMemory()
+	{
+		ImplementationContext->_CommandThread->Execute();
+	}
+
+	bool AccelerationEngine::CheckVulkanSupport()
+	{
+#ifdef _WIN32
+		HMODULE libraryTest = LoadLibraryA("vulkan-1.dll");
+		if (libraryTest) {
+			FreeLibrary(libraryTest);
+			return true;
+		}
+		return false;
+#else
+#error "Not Supported"
+#endif
+		return true;
 	}
 
 	static bool CheckInstanceSupport(const char* layerName) {
@@ -235,7 +239,7 @@ namespace HA {
 		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 		void* pUserData)
 	{
-		Logger* logger = (Logger*)pUserData;
+		HA::Logger* logger = (HA::Logger*)pUserData;
 		if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
 			logger->Print(pCallbackData->pMessage, false, "blue");
 		}

@@ -21,7 +21,10 @@ namespace HA {
 			endpoint.sin_family = AF_INET;
 			endpoint.sin_port = htons(WEB_SERVER_PORT);
 			if (::connect(SocketFd, (sockaddr*)&endpoint, sizeof(endpoint)) < 0) {
-				std::cout << "Connection Failed to webserver";
+				std::cout << "Connection Failed to webserver\n";
+			}
+			else {
+				WebServer = false;
 			}
 		}
 	}

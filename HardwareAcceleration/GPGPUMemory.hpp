@@ -4,6 +4,7 @@
 namespace HA {
 
 	struct ImplementationManagedBuffer;
+	struct ImplementationContext;
 
 	enum class GPGPUMemoryType {
 		/// <summary>
@@ -33,34 +34,65 @@ namespace HA {
 		GPGPUBuffer(const GPGPUBuffer&& move) = delete;
 
 		/// <summary>
-		/// Creates another buffer with similar properties
+		/// Creates another buffer with similar properties. Also allows you to change memory type
 		/// </summary>
 		/// <returns></returns>
-		GPGPUBuffer Clone();
+		GPGPUBuffer* Clone(HA::GPGPUMemoryType memoryType);
 
 		/// <summary>
-		/// Same as Clone() but also copies content.
+		/// Same as Clone() but also copies content. Also allows you to change memory type
 		/// </summary>
 		/// <returns></returns>
-		GPGPUBuffer Copy();
+		GPGPUBuffer* Copy(HA::GPGPUMemoryType memoryType);
 
 		/// <summary>
 		/// If your only writing use memcpy() because C++ '=' operator may perform read operation,
 		/// depending on memory type read operation may cause a memory sync from GPU to CPU which may be
 		/// not neccessary for write only operations.
+		/// [Warning] Writes or Reads may be performed before SyncWrite or SyncRead
 		/// </summary>
 		/// <returns>CPU Mapped pointer</returns>
 		void* MapBuffer();
 
 		/// <summary>
-		/// Guarantees CPU writes are available to the GPU
+		/// Frees the mapped memory
 		/// </summary>
-		void FlushWrites();
+		void UnmapBuffer();
 
 		/// <summary>
-		/// Guarantees GPU writes are available to the CPU
+		/// Writes data directly 
 		/// </summary>
-		void SyncWrites();
+		/// <param name="Data"></param>
+		/// <param name="offset"></param>
+		/// <param name="size"></param>
+		void Write(void* Data, uint64_t offset, uint64_t size);
+		void WriteAsync(void* Data, uint64_t offset, uint64_t size);
+
+		/// <summary>
+		/// Reads Buffer into memory and then stores to disk as raw .bin file.
+		/// This function uses the C Runtime FILE* API
+		/// </summary>
+		/// <param name="FileName">Path</param>
+		void StoreToDisk(const char* FileName);
+
+		/// <summary>
+		/// Guarantees GPU writes are available to the CPU. Must have memory mapped.
+		/// <param name="offset">The starting location of MapMemory()</param>
+		/// <param name="size">The range to update the buffer on the GPU. Size of 0 = Buffer Size</param>
+		/// </summary>
+		void SyncWrite(uint32_t offset, uint32_t size);
+
+		/// <summary>
+		/// Guarantees CPU writes are available to the GPU. Must have memory mapped.
+		/// </summary>
+		void SyncRead();
+
+		/// <summary>
+		/// SyncRead() and SyncWrite(). Must have memory mapped.
+		/// <param name="offset">The starting location of MapMemory()</param>
+		/// <param name="size">The range to update the buffer on the GPU. Size of 0 = Buffer Size</param>
+		/// </summary>
+		void Sync(uint32_t offset, uint32_t size);
 
 	public:
 		const GPGPUMemoryType MemoryType;
@@ -68,9 +100,13 @@ namespace HA {
 		const ImplementationManagedBuffer* Buffer;
 
 	private:
+		void* MappedMemory;
+		const ImplementationContext* Context;
+
+	private:
 		friend class AccelerationEngine;
-		GPGPUBuffer(GPGPUMemoryType memoryType, uint64_t size, ImplementationManagedBuffer* buffer) 
-			: MemoryType(memoryType), Size(size), Buffer(buffer) {}
+		GPGPUBuffer(const ImplementationContext* Context, const GPGPUMemoryType memoryType, const uint64_t size);
+		~GPGPUBuffer();
 	};
 
 }

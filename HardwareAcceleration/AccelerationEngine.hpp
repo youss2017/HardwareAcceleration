@@ -14,7 +14,8 @@ namespace HA {
 	enum class AccelerationEngineVersion {
 		VK_1_0,
 		VK_1_1,
-		VK_1_2
+		VK_1_2,
+		VK_1_3
 	};
 
 	enum AccelerationEngineDebuggingOptions {
@@ -38,7 +39,7 @@ namespace HA {
 
 	public:
 		AccelerationEngine(
-			bool DebugEnable = true, 
+			bool DebugEnable = true,
 			AccelerationEngineDebuggingOptions DebugMode = AccelerationEngineDebuggingOptions::WEB_SERVER);
 		~AccelerationEngine();
 		AccelerationEngine(const AccelerationEngine& copy) = delete;
@@ -57,7 +58,7 @@ namespace HA {
 		/// </summary>
 		/// <param name="device"></param>
 		/// <returns>True if the device is supported, false then use a different device.</returns>
-		bool EstablishDevice(const HardwareDevice& device);
+		bool UseDevice(const HardwareDevice& device);
 
 		/// <summary>
 		/// Creates a new buffer with specified requirements
@@ -65,12 +66,16 @@ namespace HA {
 		/// <param name="memoryType"></param>
 		/// <param name="size"></param>
 		/// <returns>If memory allocation is succesful a pointer to the buffer is returned otherwise nullptr is returned</returns>
-		GPGPUBuffer* AllocateBuffer(GPGPUMemoryType memoryType, uint64_t size);
+		GPGPUBuffer* Malloc(GPGPUMemoryType memoryType, uint64_t size);
 		/// <summary>
 		/// Frees memory used by buffer
 		/// </summary>
 		/// <param name="buffer"></param>
 		void FreeBuffer(GPGPUBuffer* buffer);
+
+		void CommitMemory();
+
+		static bool CheckVulkanSupport();
 
 	public:
 		/// <summary>
@@ -91,7 +96,6 @@ namespace HA {
 		/// Internal Use Only by the API. Manages info/warning/error logging.
 		/// </summary>
 		Logger* _Logger;
-
 	};
 
 }
