@@ -48,6 +48,9 @@
     <ClCompile Include="CommandThread.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ComputeShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AccelerationEngine.hpp">
@@ -72,6 +75,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CommandThread.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ComputeShader.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

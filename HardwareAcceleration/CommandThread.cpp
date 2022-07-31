@@ -54,7 +54,7 @@ void HA::CommandThread::Execute()
 	Execute(SharedCmd, Fence, false);
 	for (const auto& postExec : PostFunctions)
 		postExec();
-}
+	}
 
 void HA::CommandThread::Execute(VkCommandBuffer cmd, VkFence fence, bool FreeCmd)
 {

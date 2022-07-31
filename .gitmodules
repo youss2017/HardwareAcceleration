@@ -1,0 +1,3 @@
+[submodule "HAExample/submodules/stb"]
+	path = HAExample/submodules/stb
+	url = https://github.com/nothings/stb

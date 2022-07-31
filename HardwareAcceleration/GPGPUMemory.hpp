@@ -1,9 +1,11 @@
 #pragma once
 #include <cstdint>
+#include <vulkan/vulkan_core.h>
 
 namespace HA {
 
 	struct ImplementationManagedBuffer;
+	struct ImplementationManagedImage;
 	struct ImplementationContext;
 
 	enum class GPGPUMemoryType {
@@ -24,26 +26,22 @@ namespace HA {
 		Host
 	};
 
-	class GPGPUBuffer {
+	class GPBuffer {
 	public:
-		/// <summary>
-		/// </summary>
-		/// <param name="memoryType"></param>
-		/// <param name="size">Size is in bytes</param>
-		GPGPUBuffer(const GPGPUBuffer& copy) = delete;
-		GPGPUBuffer(const GPGPUBuffer&& move) = delete;
+		GPBuffer(const GPBuffer& copy) = delete;
+		GPBuffer(const GPBuffer&& move) = delete;
 
 		/// <summary>
 		/// Creates another buffer with similar properties. Also allows you to change memory type
 		/// </summary>
 		/// <returns></returns>
-		GPGPUBuffer* Clone(HA::GPGPUMemoryType memoryType);
+		GPBuffer* Clone(HA::GPGPUMemoryType memoryType);
 
 		/// <summary>
 		/// Same as Clone() but also copies content. Also allows you to change memory type
 		/// </summary>
 		/// <returns></returns>
-		GPGPUBuffer* Copy(HA::GPGPUMemoryType memoryType);
+		GPBuffer* Copy(HA::GPGPUMemoryType memoryType);
 
 		/// <summary>
 		/// If your only writing use memcpy() because C++ '=' operator may perform read operation,
@@ -80,7 +78,7 @@ namespace HA {
 		/// <param name="offset">The starting location of MapMemory()</param>
 		/// <param name="size">The range to update the buffer on the GPU. Size of 0 = Buffer Size</param>
 		/// </summary>
-		void SyncWrite(uint32_t offset, uint32_t size);
+		void SyncWrite(uint64_t offset, uint64_t size);
 
 		/// <summary>
 		/// Guarantees CPU writes are available to the GPU. Must have memory mapped.
@@ -92,7 +90,7 @@ namespace HA {
 		/// <param name="offset">The starting location of MapMemory()</param>
 		/// <param name="size">The range to update the buffer on the GPU. Size of 0 = Buffer Size</param>
 		/// </summary>
-		void Sync(uint32_t offset, uint32_t size);
+		void Sync(uint64_t offset, uint64_t size);
 
 	public:
 		const GPGPUMemoryType MemoryType;
@@ -103,10 +101,53 @@ namespace HA {
 		void* MappedMemory;
 		const ImplementationContext* Context;
 
+	public:
+		GPBuffer(const ImplementationContext* Context, const GPGPUMemoryType memoryType, const uint64_t size);
+		~GPBuffer();
+	};
+
+	class GPImage {
+
+	public:
+		GPImage(const ImplementationContext* Context, const VkFormat format, const VkImageType type, const VkExtent3D size, const uint32_t RowLengthInBytes, const int Mipcount, const GPGPUMemoryType memoryType);
+		~GPImage();
+		GPImage(const GPImage& copy) = delete;
+		GPImage(const GPImage&& move) = delete;
+
+		void Write(uint32_t SizeInBytes, uint8_t* PixelData);
+		void Write(GPBuffer* buffer);
+		void ReadBack(GPBuffer** OutBuffer, GPGPUMemoryType MemoryType);
+
+		GPImage* Clone(GPGPUMemoryType memoryType);
+		GPImage* Copy(GPGPUMemoryType memoryType);
+
+		/// <summary>
+		/// Default Value --> ReadOnly: false
+		/// This optimizes shader access if readonly.
+		/// Note: If you set this image to readonly, 
+		/// you cannot write to image in shader.
+		/// </summary>
+		/// <param name="ReadOnly"></param>
+		void OptimizeShaderAccess(bool ReadOnly);
+
+		void GenerateMipmap();
+
+	public:
+		const ImplementationContext* Context;
+		const ImplementationManagedImage* Image;
+		const GPGPUMemoryType MemoryType;
+		const VkFormat Format;
+		const VkImageType ImageType;
+		const VkExtent3D Size;
+		const int Mipcount;
+
 	private:
-		friend class AccelerationEngine;
-		GPGPUBuffer(const ImplementationContext* Context, const GPGPUMemoryType memoryType, const uint64_t size);
-		~GPGPUBuffer();
+		void TransitionImage(VkCommandBuffer cmd, VkImageLayout layout);
+
+	private:
+		VkImageLayout CurrentLayout;
+		const uint32_t BufferRowLength;
+		bool ReadOnly;
 	};
 
 }

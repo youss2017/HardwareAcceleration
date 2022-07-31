@@ -10,4 +10,10 @@ namespace HA {
 		VmaAllocationInfo AllocationInfo;
 	};
 
+	struct ImplementationManagedImage {
+		VkImage Image;
+		VmaAllocation Allocation;
+		VmaAllocationInfo AllocationInfo;
+	};
+
 }

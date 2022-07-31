@@ -39,12 +39,7 @@ namespace HA {
 	void Logger::Print(const char* message, bool bold, const char* color)
 	{
 		if (WebServer) {
-			std::stringstream ss;
-			if (bold) ss << "<b>";
-			ss << "<span style='color:" << color << ">" << message << "</span>";
-			if (bold) ss << "</b><br/>";
-			std::string finalMessage = ss.str();
-			::send(SocketFd, finalMessage.c_str(), finalMessage.size(), 0);
+
 		}
 		else {
 			std::cout << message;

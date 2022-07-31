@@ -33,6 +33,16 @@ namespace HA {
 		uint64_t SystemSharedMemorySize;
 		bool IsDedicated;
 		AccelerationEngineVersion SupportedVersion;
+
+		static HardwareDevice GetDefault(std::vector<HardwareDevice>& devices) {
+			auto& device = devices[0];
+			for (auto& d : devices) {
+				if (d.VRAMSize > device.VRAMSize)
+					device = d;
+			}
+			return device;
+		}
+
 	};
 
 	class AccelerationEngine {
@@ -61,18 +71,8 @@ namespace HA {
 		bool UseDevice(const HardwareDevice& device);
 
 		/// <summary>
-		/// Creates a new buffer with specified requirements
+		/// Performs all the WriteAsync calls
 		/// </summary>
-		/// <param name="memoryType"></param>
-		/// <param name="size"></param>
-		/// <returns>If memory allocation is succesful a pointer to the buffer is returned otherwise nullptr is returned</returns>
-		GPGPUBuffer* Malloc(GPGPUMemoryType memoryType, uint64_t size);
-		/// <summary>
-		/// Frees memory used by buffer
-		/// </summary>
-		/// <param name="buffer"></param>
-		void FreeBuffer(GPGPUBuffer* buffer);
-
 		void CommitMemory();
 
 		static bool CheckVulkanSupport();

@@ -45,7 +45,7 @@ namespace HA {
 				debugCreateInfo.pUserData = _Logger;
 			}
 			else {
-				std::cout << "Validation layers not supported." << std::endl;
+				_Logger->Print("Validation layers not supported.");
 			}
 		}
 		instanceCreateInfo.enabledLayerCount = (uint32_t)extensions.size();
@@ -57,7 +57,7 @@ namespace HA {
 				_Logger->Print("Failed to create the vulkan instance. Could not initalize engine.", true, "red");
 			throw std::runtime_error("Failed to create the vulkan instance. Could not initalize engine.");
 		}
-
+		ImplementationContext->Logger = _Logger;
 	}
 
 	AccelerationEngine::~AccelerationEngine()
@@ -177,17 +177,6 @@ namespace HA {
 		ImplementationContext->_CommandThread = new CommandThread(ImplementationContext->Device, ImplementationContext->Queue, index, ImplementationContext->AllocationCallbacks);
 
 		return true;
-	}
-
-	GPGPUBuffer* AccelerationEngine::Malloc(GPGPUMemoryType memoryType, uint64_t size)
-	{
-		return new GPGPUBuffer(ImplementationContext, memoryType, size);
-	}
-
-	void AccelerationEngine::FreeBuffer(GPGPUBuffer* buffer)
-	{
-		assert(buffer && "GPGPUBuffer cannot be null.");
-		delete buffer;
 	}
 
 	void AccelerationEngine::CommitMemory()

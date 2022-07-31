@@ -1,6 +1,7 @@
 #pragma once
 // This file is only for internal use by the api
 #include "CommandThread.hpp"
+#include "ImplementationLogger.hpp"
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
 #include <string>
@@ -16,6 +17,7 @@ namespace HA {
 		VkQueue Queue;
 		VmaAllocator Allocator;
 		CommandThread* _CommandThread;
+		Logger* Logger;
 	};
 
 	std::string GetStringFromResult(VkResult result);
