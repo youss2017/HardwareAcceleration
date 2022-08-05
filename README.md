@@ -1,4 +1,4 @@
-<h1>Hardare Accleration</h1>
+<h1>Hardware Acceleration</h1>
 <hr/>
 <h4>About</h4>
 <p>
